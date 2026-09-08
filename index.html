@@ -61,10 +61,16 @@
         const btn = document.getElementById('fullscreenBtn');
         let hideTimeout;
 
-        // Detect if running inside a Tesla browser
-        const isTesla = /Tesla/i.test(navigator.userAgent);
+        // More aggressive Tesla check: matches 'Tesla', 'QtCarBrowser', or Linux ARM/x86 Chromium profiles common to MCU2/MCU3
+        const isTesla = /Tesla|QtCarBrowser/i.test(navigator.userAgent) || 
+                       (navigator.platform.includes('Linux') && !/Android/i.test(navigator.userAgent));
 
-        // Update button text on initial load for Tesla
+        function redirectToTeslaTheater() {
+            const targetUrl = encodeURIComponent(window.location.href);
+            window.location.href = `https://www.youtube.com/redirect?q=${targetUrl}`;
+        }
+
+        // Update button text on initial load if detected
         if (isTesla) {
             btn.textContent = "Launch Tesla Fullscreen";
         }
@@ -79,23 +85,27 @@
             }, 3000);
         }
 
-        // Fullscreen toggle logic with Tesla fallback
+        // Fullscreen toggle logic with automatic fallback
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
 
             if (isTesla) {
-                // Redirect via YouTube Theater wrapper to force OS fullscreen container
-                const targetUrl = encodeURIComponent(window.location.href);
-                window.location.href = `https://www.youtube.com/redirect?q=${targetUrl}`;
+                redirectToTeslaTheater();
                 return;
             }
 
-            // Standard HTML5 Fullscreen API for standard desktop/mobile browsers
+            // Standard HTML5 Fullscreen API
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch((err) => {
-                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
-                });
-                btn.textContent = "Exit Fullscreen";
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen().catch((err) => {
+                        console.log(`Fullscreen blocked, falling back to YouTube redirect: ${err.message}`);
+                        // If browser refuses standard fullscreen, fall back to redirect
+                        redirectToTeslaTheater();
+                    });
+                    btn.textContent = "Exit Fullscreen";
+                } else {
+                    redirectToTeslaTheater();
+                }
             } else {
                 document.exitFullscreen();
                 btn.textContent = "Go Fullscreen";
