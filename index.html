@@ -61,24 +61,36 @@
         const btn = document.getElementById('fullscreenBtn');
         let hideTimeout;
 
+        // Detect if running inside a Tesla browser
+        const isTesla = /Tesla/i.test(navigator.userAgent);
+
+        // Update button text on initial load for Tesla
+        if (isTesla) {
+            btn.textContent = "Launch Tesla Fullscreen";
+        }
+
         // Function to temporarily show the button, then hide it after 3 seconds
         function showButtonBriefly() {
-            // Cancel any pending timer so it doesn't hide prematurely
             clearTimeout(hideTimeout);
-            
-            // Make button visible
             btn.classList.remove('hidden');
 
-            // Set a new timer to hide the button after 3000ms (3 seconds)
             hideTimeout = setTimeout(() => {
                 btn.classList.add('hidden');
             }, 3000);
         }
 
-        // Fullscreen toggle logic
+        // Fullscreen toggle logic with Tesla fallback
         btn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevents the body tap event from firing at the same time
-            
+            e.stopPropagation();
+
+            if (isTesla) {
+                // Redirect via YouTube Theater wrapper to force OS fullscreen container
+                const targetUrl = encodeURIComponent(window.location.href);
+                window.location.href = `https://www.youtube.com/redirect?q=${targetUrl}`;
+                return;
+            }
+
+            // Standard HTML5 Fullscreen API for standard desktop/mobile browsers
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen().catch((err) => {
                     console.log(`Error attempting to enable fullscreen: ${err.message}`);
@@ -88,17 +100,16 @@
                 document.exitFullscreen();
                 btn.textContent = "Go Fullscreen";
             }
-            
-            // Refresh the timer after clicking
+
             showButtonBriefly();
         });
 
-        // Trigger the visibility behavior anytime the screen is tapped or clicked
+        // Trigger visibility behavior on tap/click
         document.body.addEventListener('click', () => {
             showButtonBriefly();
         });
 
-        // Initialize the countdown when the page first loads
+        // Initialize countdown on load
         showButtonBriefly();
     </script>
 </body>
